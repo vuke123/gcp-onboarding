@@ -25,7 +25,7 @@ def fetch_questions() -> list[dict]:
         "sort": STACKEX_SORT,
         "tagged": STACKEX_TAGGED,
     }
-    params["key"] = STACKEX_KEY  
+    params["key"] = STACKEX_KEY
 
     r = requests.get(STACKEX_API_URL, params=params, timeout=30)
     r.raise_for_status()
