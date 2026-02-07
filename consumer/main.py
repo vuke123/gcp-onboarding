@@ -1,3 +1,5 @@
+"""Pub/Sub consumer service that processes messages from a subscription."""
+
 import base64
 import json
 import os
@@ -6,11 +8,12 @@ from flask import Flask, request
 app = Flask(__name__)
 
 @app.get("/")
-def health():
+def health() -> tuple:
+    """Health check endpoint required by Cloud Run."""
     return "OK", 200
 
 @app.post("/pubsub/push")
-def pubsub_push():
+def pubsub_push() -> tuple:
     """
     Pub/Sub push sends JSON envelope like:
     {
@@ -36,7 +39,7 @@ def pubsub_push():
     try:
         decoded = base64.b64decode(data_b64).decode("utf-8") if data_b64 else ""
         payload = json.loads(decoded) if decoded else {}
-    except Exception as e:
+    except (json.JSONDecodeError, UnicodeDecodeError, base64.binascii.Error) as e:
         print(f"[consumer] decode/parse error: {e}")
         return ("Bad Request: invalid message data", 400)
 
