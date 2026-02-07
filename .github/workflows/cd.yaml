@@ -1,0 +1,74 @@
+name: Continuous Deployment (CD)
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+      REGION: europe-west8
+      REPO: stack-exchange-repo
+      CONSUMER_IMAGE: europe-west8-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/stack-exchange-repo/lab1-consumer:latest
+      PRODUCER_IMAGE: europe-west8-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/stack-exchange-repo/lab1-producer:latest
+
+    steps:
+      # 2) Checkout
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 3) Auth to GCP (Service Account JSON iz GitHub Secrets)
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # 4) Setup gcloud
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # 5) Configure Docker for Artifact Registry
+      - name: Configure Docker
+        run: gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+
+      # ----- Consumer -----
+      - name: Build Consumer Docker image
+        run: |
+          docker build -t lab1-consumer ./consumer
+          docker tag lab1-consumer $CONSUMER_IMAGE
+
+      - name: Push Consumer Docker image
+        run: docker push $CONSUMER_IMAGE
+
+      - name: Deploy Consumer to Cloud Run (Service)
+        run: |
+          gcloud run deploy lab1-consumer \
+            --image $CONSUMER_IMAGE \
+            --region $REGION \
+            --project $PROJECT_ID \
+            --allow-unauthenticated
+
+      # ----- Producer -----
+      - name: Build Producer Docker image
+        run: |
+          docker build -t lab1-producer ./producer
+          docker tag lab1-producer $PRODUCER_IMAGE
+
+      - name: Push Producer Docker image
+        run: docker push $PRODUCER_IMAGE
+
+      - name: Deploy Producer to Cloud Run (Job)
+        run: |
+          gcloud run jobs deploy stackex-producer-job \
+            --image $PRODUCER_IMAGE \
+            --region $REGION \
+            --project $PROJECT_ID
+
+      - name: Execute Producer Job
+        run: |
+          gcloud run jobs execute stackex-producer-job \
+            --region $REGION \
+            --project $PROJECT_ID
