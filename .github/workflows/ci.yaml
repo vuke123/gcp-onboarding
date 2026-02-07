@@ -19,15 +19,20 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3) Install linters and dependencies
+      # 3) Setup Node.js for editorconfig-checker
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 4) Install linters and dependencies
       - name: Install tools and dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pylint editorconfig-checker
+          pip install pylint
+          npm install -g editorconfig-checker
           cd consumer && pip install -r requirements.txt && cd ..
           cd producer && pip install -r requirements.txt && cd ..
-          pip install -r consumer/requirements.txt
-          pip install -r producer/requirements.txt
 
       # 4) Pylint (consumer + producer)
       - name: Run pylint (consumer)
