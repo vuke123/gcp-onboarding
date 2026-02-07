@@ -1,0 +1,44 @@
+name: Continuous Integration (CI)
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout repo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) Setup Python (za pylint + editorconfig-check)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3) Install linters
+      - name: Install lint tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint editorconfig-checker
+
+      # 4) Pylint (consumer + producer)
+      - name: Run pylint (consumer)
+        run: pylint consumer
+
+      - name: Run pylint (producer)
+        run: pylint producer
+
+      # 5) EditorConfig check (za cijeli repo)
+      - name: Check EditorConfig
+        run: editorconfig-checker .
+
+      # 6) Docker build test (bez push-a)
+      - name: Docker build (consumer)
+        run: docker build -t ci-consumer:pr-${{ github.event.pull_request.number }} ./consumer
+
+      - name: Docker build (producer)
+        run: docker build -t ci-producer:pr-${{ github.event.pull_request.number }} ./producer
