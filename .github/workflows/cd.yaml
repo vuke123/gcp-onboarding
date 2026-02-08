@@ -13,8 +13,8 @@ jobs:
       REGION: europe-west8
       REPO: stack-exchange-repo
       PUBSUB_TOPIC: lab1-topic
-      CONSUMER_IMAGE: europe-west8-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/stack-exchange-repo/lab1-consumer:latest
-      PRODUCER_IMAGE: europe-west8-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/stack-exchange-repo/lab1-producer:latest
+      CONSUMER_IMAGE: europe-west8-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/stack-exchange-repo/stackex-consumer:latest
+      PRODUCER_IMAGE: europe-west8-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/stack-exchange-repo/stackex-producer:latest
 
     steps:
       # 2) Checkout
@@ -38,8 +38,8 @@ jobs:
       # ----- Consumer -----
       - name: Build Consumer Docker image
         run: |
-          docker build -t lab1-consumer ./consumer
-          docker tag lab1-consumer $CONSUMER_IMAGE
+          docker build -t stackex-consumer ./consumer
+          docker tag stackex-consumer $CONSUMER_IMAGE
 
       - name: Push Consumer Docker image
         run: docker push $CONSUMER_IMAGE
@@ -55,8 +55,8 @@ jobs:
       # ----- Producer -----
       - name: Build Producer Docker image
         run: |
-          docker build -t lab1-producer ./producer
-          docker tag lab1-producer $PRODUCER_IMAGE
+          docker build -t stackex-producer ./producer
+          docker tag stackex-producer $PRODUCER_IMAGE
 
       - name: Push Producer Docker image
         run: docker push $PRODUCER_IMAGE
