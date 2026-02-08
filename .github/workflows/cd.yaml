@@ -69,7 +69,7 @@ jobs:
             --project $PROJECT_ID \
             --set-env-vars "PROJECT_ID=$PROJECT_ID,PUBSUB_TOPIC=$PUBSUB_TOPIC"
 
-      - name: Execute Producer Job
+      - name: Execute producer job
         run: |
           gcloud run jobs execute stackex-producer-job \
             --region $REGION \
