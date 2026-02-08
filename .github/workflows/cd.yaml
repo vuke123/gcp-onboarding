@@ -32,7 +32,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       # 5) Configure Docker for Artifact Registry
-      - name: Configure Docker
+      - name: Configure Dockeer
         run: gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
 
       # ----- Consumer -----
