@@ -28,7 +28,7 @@ jobs:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       # 4) Setup gcloud
-      - name: Set up Cloud SDK
+      - name: Set up Cloud sdk
         uses: google-github-actions/setup-gcloud@v2
 
       # 5) Configure Docker for Artifact Registry
