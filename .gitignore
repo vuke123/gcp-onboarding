@@ -197,7 +197,7 @@ service-account-key.json
 !producer/.env.yaml
 !consumer/.env.yaml
 
-# IDE files
+# IDE files 
 *.swp
 *.swo
 *~

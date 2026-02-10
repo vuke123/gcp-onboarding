@@ -143,6 +143,8 @@ def main() -> None:
             if i == len(posts):  # Last message
                 print("[producer] simulating invalid message...")
                 del post["title"]  # Remove required field
+                del post["question_id"]  # Remove required field
+
 
             publish_main(post)
 
