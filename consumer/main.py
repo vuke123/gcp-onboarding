@@ -1,25 +1,25 @@
 """Pub/Sub consumer service that processes messages from a subscription."""
 
-"""Consumer service that processes AVRO messages from Pub/Sub and stores them in GCS/BigQuery."""
+"""Consumer service that processes AVRO messages from Pub/Sub push and stores them in GCS/BigQuery."""
 
+import base64
 import io
 import json
 import os
 from datetime import datetime
-from pathlib import Path
 
 import fastavro
 import pandas as pd
+from flask import Flask, request
 from google.cloud import bigquery
-from google.cloud import pubsub_v1
 from google.cloud import storage
-from google.cloud import secretmanager
 
 from schema import STACKEX_POST_SCHEMA
 
+app = Flask(__name__)
+
 # Load config from env
 PROJECT_ID = os.environ["PROJECT_ID"]
-SUBSCRIPTION_ID = os.environ["PUBSUB_SUBSCRIPTION"]
 BUCKET_NAME = os.environ["GCS_BUCKET"]
 DATASET_ID = os.environ["BIGQUERY_DATASET"]
 TABLE_ID = os.environ["BIGQUERY_TABLE"]
@@ -33,12 +33,10 @@ bucket = storage_client.bucket(BUCKET_NAME)
 parsed_schema = fastavro.parse_schema(STACKEX_POST_SCHEMA)
 
 
-def get_secret(secret_id: str) -> str:
-    """Retrieve a secret from Google Secret Manager."""
-    client = secretmanager.SecretManagerServiceClient()
-    name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/latest"
-    response = client.access_secret_version(request={"name": name})
-    return response.payload.data.decode("UTF-8")
+@app.get("/")
+def health():
+    """Health check endpoint required by Cloud Run."""
+    return "OK", 200
 
 
 def store_json(message_id: str, data: dict) -> None:
@@ -95,59 +93,50 @@ def load_to_bigquery(parquet_path: str) -> None:
     load_job.result()  # Wait for completion
 
 
-def process_message(message: pubsub_v1.subscriber.message.Message) -> None:
-    """Process a single message from Pub/Sub."""
+@app.post("/pubsub/push")
+def pubsub_push():
+    """Handle Pub/Sub push messages."""
+    envelope = request.get_json(silent=True)
+    if not envelope or "message" not in envelope:
+        print("[consumer] no Pub/Sub message received")
+        return "No message received", 400
+
+    # Extract message data
+    pubsub_message = envelope["message"]
+    message_id = pubsub_message.get("messageId")
+    data_b64 = pubsub_message.get("data", "")
+
     try:
-        # Decode AVRO
+        # Decode base64 and AVRO
+        avro_bytes = base64.b64decode(data_b64)
         decoded = fastavro.schemaless_reader(
-            io.BytesIO(message.data),
+            io.BytesIO(avro_bytes),
             parsed_schema
         )
         
-        print(f"[consumer] processing message {message.message_id}")
+        print(f"[consumer] processing message {message_id}")
         
         # Store as JSON
-        store_json(message.message_id, decoded)
-        print(f"[consumer] stored JSON: {message.message_id}.json")
+        store_json(message_id, decoded)
+        print(f"[consumer] stored JSON: {message_id}.json")
         
         # Store as Parquet
         parquet_path = store_parquet(decoded)
         print(f"[consumer] stored Parquet: {parquet_path}")
         
         # Load to BigQuery
-        #load_to_bigquery(parquet_path)
-        print(f"[consumer] loaded to BigQuery: {message.message_id}")
+        load_to_bigquery(parquet_path)
+        print(f"[consumer] loaded to BigQuery: {message_id}")
         
-        # Acknowledge the message
-        message.ack()
-        print(f"[consumer] acknowledged message: {message.message_id}")
+        # Return success to acknowledge the message
+        return "", 204
         
     except Exception as e:
-        print(f"[consumer] error processing message {message.message_id}: {e}")
-        message.nack()  # Retry the message
-
-
-def main() -> None:
-    """Main function that sets up the subscriber."""
-    subscriber = pubsub_v1.SubscriberClient()
-    subscription_path = subscriber.subscription_path(
-        PROJECT_ID,
-        SUBSCRIPTION_ID
-    )
-    
-    print(f"[consumer] listening on {subscription_path}...")
-    
-    future = subscriber.subscribe(
-        subscription_path,
-        callback=process_message
-    )
-    
-    try:
-        future.result()  # Block until the future completes
-    except KeyboardInterrupt:
-        future.cancel()
-        print("\n[consumer] stopped.")
+        print(f"[consumer] error processing message {message_id}: {e}")
+        # Return error to nack the message
+        return str(e), 400
 
 
 if __name__ == "__main__":
-    main()
+    port = int(os.getenv("PORT", "8080"))
+    app.run(host="0.0.0.0", port=port)
