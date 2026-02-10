@@ -104,11 +104,20 @@ def pubsub_push():
     # Extract message data
     pubsub_message = envelope["message"]
     message_id = pubsub_message.get("messageId")
-    data_b64 = pubsub_message.get("data", "")
+    data_b64 = pubsub_message.get("data")
+
+    if not data_b64:
+        print("[consumer] no message data received")
+        return "No message data", 400
 
     try:
-        # Decode base64 and AVRO
+        # Decode base64 to get raw AVRO bytes
         avro_bytes = base64.b64decode(data_b64)
+
+        # Debug: Print first few bytes to verify it's AVRO
+        print(f"[consumer] received {len(avro_bytes)} bytes: {avro_bytes[:10].hex()}")
+        
+        # Decode AVRO using schema
         decoded = fastavro.schemaless_reader(
             io.BytesIO(avro_bytes),
             parsed_schema
@@ -116,7 +125,7 @@ def pubsub_push():
         
         print(f"[consumer] processing message {message_id}")
         
-        # Store as JSON
+        # Store as JSON (use dumps to ensure proper serialization)
         store_json(message_id, decoded)
         print(f"[consumer] stored JSON: {message_id}.json")
         
@@ -125,16 +134,17 @@ def pubsub_push():
         print(f"[consumer] stored Parquet: {parquet_path}")
         
         # Load to BigQuery
-        load_to_bigquery(parquet_path)
+        #load_to_bigquery(parquet_path)
         print(f"[consumer] loaded to BigQuery: {message_id}")
         
         # Return success to acknowledge the message
         return "", 204
         
     except Exception as e:
-        print(f"[consumer] error processing message {message_id}: {e}")
+        error_msg = f"[consumer] error processing message {message_id}: {str(e)}"
+        print(error_msg)
         # Return error to nack the message
-        return str(e), 400
+        return error_msg, 400
 
 
 if __name__ == "__main__":

@@ -9,7 +9,6 @@ from datetime import datetime
 import fastavro
 import requests
 from google.cloud import pubsub_v1
-from google.cloud import secretmanager
 
 from schema import STACKEX_POST_SCHEMA
 
@@ -21,20 +20,17 @@ PROJECT_ID = os.environ["PROJECT_ID"]
 TOPIC_ID = os.environ["PUBSUB_TOPIC"]
 DLQ_TOPIC_ID = os.environ["DLQ_TOPIC_ID"]
 
+# Stack Exchange API key (required)
+STACKEX_KEY = os.getenv("STACK_EXCHANGE_API_KEY")
+if not STACKEX_KEY:
+    raise ValueError("STACK_EXCHANGE_API_KEY environment variable is required")
+
 # Optional config with defaults
 STACKEX_SITE = os.getenv("STACKEX_SITE", "stackoverflow")
 STACKEX_PAGESIZE = int(os.getenv("STACKEX_PAGESIZE", "10"))
 STACKEX_SORT = os.getenv("STACKEX_SORT", "votes")
 STACKEX_ORDER = os.getenv("STACKEX_ORDER", "desc")
 STACKEX_TAGGED = os.getenv("STACKEX_TAGGED", "data-engineering")
-
-def get_secret(secret_id: str) -> str:
-    """Retrieve a secret from Google Secret Manager."""
-    client = secretmanager.SecretManagerServiceClient()
-    name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/latest"
-    response = client.access_secret_version(request={"name": name})
-    return response.payload.data.decode("UTF-8")
-
 
 def fetch_top_posts() -> list[dict]:
     """Fetch top Stack Exchange posts based on configuration."""
@@ -44,7 +40,7 @@ def fetch_top_posts() -> list[dict]:
         "order": STACKEX_ORDER,
         "sort": STACKEX_SORT,
         "tagged": STACKEX_TAGGED,
-        "key": get_secret("STACK_EXCHANGE_API_KEY")
+        "key": STACKEX_KEY
     }
 
     r = requests.get(STACKEX_API_URL, params=params, timeout=30)
@@ -54,22 +50,30 @@ def fetch_top_posts() -> list[dict]:
 
 def transform_post(post: dict) -> dict:
     """Transform raw API response to match our AVRO schema."""
+    # Extract owner data safely
+    owner = post.get("owner", {})
+    
     return {
-        "question_id": post["question_id"],
-        "title": post["title"],
-        "link": post["link"],
-        "score": post["score"],
-        "creation_date": post["creation_date"],
-        "answer_count": post["answer_count"],
-        "is_answered": post["is_answered"],
-        "view_count": post["view_count"],
-        "tags": post["tags"],
+        "question_id": post.get("question_id", 0),  # Required
+        "title": post.get("title"),  # Nullable
+        "link": post.get("link"),  # Nullable
+        "score": post.get("score"),  # Nullable
+        "answer_count": post.get("answer_count"),  # Nullable
+        "view_count": post.get("view_count"),  # Nullable
+        "is_answered": post.get("is_answered"),  # Nullable
+        "creation_date": post.get("creation_date"),  # Nullable
+        "last_activity_date": post.get("last_activity_date"),  # Nullable
+        "tags": post.get("tags"),  # Nullable array
+        "content_license": post.get("content_license"),  # Nullable
         "owner": {
-            "user_id": post["owner"].get("user_id"),
-            "display_name": post["owner"]["display_name"],
-            "reputation": post["owner"].get("reputation"),
-            "user_type": post["owner"]["user_type"]
-        }
+            "account_id": owner.get("account_id"),  # Nullable
+            "user_id": owner.get("user_id"),  # Nullable
+            "reputation": owner.get("reputation"),  # Nullable
+            "user_type": owner.get("user_type"),  # Nullable
+            "display_name": owner.get("display_name"),  # Nullable
+            "profile_image": owner.get("profile_image"),  # Nullable
+            "link": owner.get("link")  # Nullable
+        } if owner else None  # Entire owner record is nullable
     }
 
 
