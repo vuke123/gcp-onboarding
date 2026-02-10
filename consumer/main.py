@@ -134,7 +134,7 @@ def pubsub_push():
         print(f"[consumer] stored Parquet: {parquet_path}")
         
         # Load to BigQuery
-        #load_to_bigquery(parquet_path)
+        load_to_bigquery(parquet_path)
         print(f"[consumer] loaded to BigQuery: {message_id}")
         
         # Return success to acknowledge the message
