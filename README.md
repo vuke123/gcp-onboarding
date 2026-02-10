@@ -1,11 +1,21 @@
-# Stack Exchange Data Pipeline
+# Stack Exchange Data Pipeline - Lab 2
 
-This project implements a data pipeline that fetches top posts from Stack Exchange API and processes them using Google Cloud Pub/Sub.
+This project implements an advanced data pipeline that fetches top posts from Stack Exchange API, encodes them in AVRO format, and stores them in GCS and BigQuery with schema validation and dead-letter queue handling.
+
+## Architecture
+
+```
+Stack Exchange API → Producer (AVRO) → Pub/Sub (with Schema) → Consumer → GCS (JSON/Parquet) → BigQuery
+                                      ↓
+                              Dead-Letter Topic (invalid messages)
+```
 
 ## Components
 
-- **Producer**: Fetches top posts from Stack Exchange API and publishes them to a Pub/Sub topic
-- **Consumer**: Subscribes to the Pub/Sub topic and processes incoming messages
+- **Producer**: Fetches top posts from Stack Exchange API, encodes them in AVRO, and publishes to Pub/Sub
+- **Consumer**: Pull-based subscriber that decodes AVRO messages and stores them in GCS/BigQuery
+- **Schema Registry**: AVRO schema validation for message consistency
+- **Dead-Letter Queue**: Handles invalid messages automatically
 
 ## Prerequisites
 
@@ -13,8 +23,58 @@ This project implements a data pipeline that fetches top posts from Stack Exchan
 - Docker
 - Access to Google Cloud Project
 - Configured gcloud authentication
+- Stack Exchange API key (stored in Secret Manager)
+
+## GCP Resources Required
+
+1. **Pub/Sub**:
+   - Main topic with AVRO schema attached
+   - Dead-letter topic for invalid messages
+   - Subscription with schema validation enabled
+
+2. **Storage**:
+   - GCS bucket for JSON and Parquet files
+   - BigQuery dataset and table
+
+3. **Secrets**:
+   - `STACK_EXCHANGE_API_KEY` in Secret Manager
 
 ## Local Development
+
+1. Install dependencies:
+```bash
+# Producer
+pip install -r producer/requirements.txt
+
+# Consumer
+pip install -r consumer/requirements.txt
+```
+
+2. Set up environment variables:
+```bash
+# Producer
+export PROJECT_ID=your-project-id
+export PUBSUB_TOPIC=lab1-topic
+export DLQ_TOPIC_ID=deadletter
+
+# Consumer
+export PROJECT_ID=your-project-id
+export PUBSUB_SUBSCRIPTION=lab1-subscription
+export GCS_BUCKET=lab1-stackex-data
+export BIGQUERY_DATASET=stackex_data
+export BIGQUERY_TABLE=posts
+```
+
+3. Run locally:
+```bash
+# Producer (one-time execution)
+python producer/main.py
+
+# Consumer (continuous listening)
+python consumer/main.py
+```
+
+## Docker Deployment
 
 1. Build the Docker images:
 ```bash
@@ -27,69 +87,97 @@ cd ../consumer
 docker build -t lab1-consumer .
 ```
 
-2. Run locally with Docker:
-```bash
-# Create network
-docker network create stackexchange-network
-
-# Run producer
-docker run -v $HOME/.config/gcloud:/root/.config/gcloud \
-           -v $HOME/.config/application_default_credentials.json:/root/.config/application_default_credentials.json \
-           -e PROJECT_ID=your-project-id \
-           -e PUBSUB_TOPIC=your-topic \
-           lab1-producer
-
-# Run consumer
-docker run -v $HOME/.config/gcloud:/root/.config/gcloud \
-           -v $HOME/.config/application_default_credentials.json:/root/.config/application_default_credentials.json \
-           -e PROJECT_ID=your-project-id \
-           -e PUBSUB_SUBSCRIPTION=your-subscription \
-           lab1-consumer
-```
-
-## Deployment to Cloud Run
-
-1. Tag and push images to Artifact Registry:
+2. Run with Docker:
 ```bash
 # Producer
-docker tag lab1-producer $GCP_REGION-docker.pkg.dev/$PROJECT_ID/stack-exchange-repo/lab1-producer:latest
-docker push $GCP_REGION-docker.pkg.dev/$PROJECT_ID/stack-exchange-repo/lab1-producer:latest
+docker run --rm \
+  -v $HOME/.config/gcloud:/root/.config/gcloud \
+  -e PROJECT_ID=your-project-id \
+  -e PUBSUB_TOPIC=lab1-topic \
+  -e DLQ_TOPIC_ID=deadletter \
+  lab1-producer
 
 # Consumer
-docker tag lab1-consumer $GCP_REGION-docker.pkg.dev/$PROJECT_ID/stack-exchange-repo/lab1-consumer:latest
-docker push $GCP_REGION-docker.pkg.dev/$PROJECT_ID/stack-exchange-repo/lab1-consumer:latest
+docker run --rm \
+  -v $HOME/.config/gcloud:/root/.config/gcloud \
+  -e PROJECT_ID=your-project-id \
+  -e PUBSUB_SUBSCRIPTION=lab1-subscription \
+  -e GCS_BUCKET=lab1-stackex-data \
+  -e BIGQUERY_DATASET=stackex_data \
+  -e BIGQUERY_TABLE=posts \
+  lab1-consumer
 ```
 
-2. Create secrets in Secret Manager:
+## Cloud Run Deployment
+
+### Producer (Cloud Run Job)
 ```bash
-# Create secrets from .env file
-gcloud secrets create stack-exchange-secrets --data-file=.env
+# Deploy producer job
+gcloud run jobs deploy stackex-producer-job \
+  --source producer \
+  --env-vars-file .env.yaml \
+  --region europe-west8
+
+# Execute the job
+gcloud run jobs execute stackex-producer-job --region europe-west8
 ```
 
-3. Deploy to Cloud Run:
+### Consumer (Cloud Run Service)
 ```bash
-# Deploy producer
-gcloud run deploy lab1-producer \
-  --image=$GCP_REGION-docker.pkg.dev/$PROJECT_ID/stack-exchange-repo/lab1-producer:latest \
-  --region=$GCP_REGION \
-  --set-secrets=STACK_EXCHANGE_API_KEY=stack-exchange-secrets:latest
-
-# Deploy consumer
-gcloud run deploy lab1-consumer \
-  --image=$GCP_REGION-docker.pkg.dev/$PROJECT_ID/stack-exchange-repo/lab1-consumer:latest \
-  --region=$GCP_REGION \
-  --set-secrets=STACK_EXCHANGE_API_KEY=stack-exchange-secrets:latest
+# Deploy consumer service
+gcloud run deploy stackex-consumer \
+  --source consumer \
+  --env-vars-file consumer/.env.yaml \
+  --region europe-west8 \
+  --min-instances 1
 ```
 
-## Environment Variables
+## CI/CD Pipeline
 
-- `PROJECT_ID`: Google Cloud Project ID
-- `PUBSUB_TOPIC`: Pub/Sub topic name
-- `PUBSUB_SUBSCRIPTION`: Pub/Sub subscription name
-- `STACK_EXCHANGE_API_KEY`: Stack Exchange API key (stored in Secret Manager)
+The project includes automated CI/CD using GitHub Actions:
 
-## Security
+- **CI Workflow** (`.github/workflows/ci.yaml`):
+  - Runs on pull requests
+  - Linting with pylint
+  - EditorConfig validation
+  - Docker build tests
 
-- Secrets are managed using Google Cloud Secret Manager
-- Service accounts with minimal permissions are used
-- Environment variables are securely passed through Cloud Run
+- **CD Workflow** (`.github/workflows/cd.yaml`):
+  - Runs on push to main branch
+  - Builds and pushes Docker images
+  - Deploys to Cloud Run
+  - Executes producer job
+
+## Data Flow
+
+1. **Producer**:
+   - Fetches top 10 posts from Stack Exchange API
+   - Transforms data to match AVRO schema
+   - Encodes messages in AVRO binary format
+   - Publishes to main topic (valid) or DLQ (invalid)
+
+2. **Consumer**:
+   - Pulls messages from Pub/Sub subscription
+   - Decodes AVRO messages
+   - Stores as JSON in GCS (`json/{message_id}.json`)
+   - Stores as Parquet in GCS with time partitioning (`parquet/year=.../month=.../day=.../hour=.../`)
+   - Loads Parquet files into BigQuery
+
+## Error Handling
+
+- **Schema Validation**: Invalid messages automatically routed to DLQ
+- **Processing Errors**: Runtime errors trigger message retry via `nack()`
+- **Negative Test**: Producer deliberately breaks last message to test DLQ
+
+## Monitoring
+
+Check Cloud Run logs for monitoring:
+```bash
+# Producer logs
+gcloud logs read "resource.type=cloud_run_revision" \
+  --resource-names="projects/your-project-id/locations/europe-west8/services/stackex-producer-job"
+
+# Consumer logs
+gcloud logs read "resource.type=cloud_run_revision" \
+  --resource-names="projects/your-project-id/locations/europe-west8/services/stackex-consumer"
+```
