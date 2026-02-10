@@ -67,7 +67,7 @@ jobs:
             --image $PRODUCER_IMAGE \
             --region $REGION \
             --project $PROJECT_ID \
-            --set-env-vars "PROJECT_ID=$PROJECT_ID,PUBSUB_TOPIC=$PUBSUB_TOPIC"
+            --env-vars-file producer/.env.yaml
 
       - name: Execute producer job
         run: |

@@ -190,9 +190,12 @@ service-account-key.json
 *.p12
 
 # Local configuration files
-.env.yaml
 .env.local
 .env.*.local
+
+# Allow env.yaml files for Cloud Run deployment
+!producer/.env.yaml
+!consumer/.env.yaml
 
 # IDE files
 *.swp
