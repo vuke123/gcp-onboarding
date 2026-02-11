@@ -27,7 +27,7 @@ if not STACKEX_KEY:
 
 # Optional config with defaults
 STACKEX_SITE = os.getenv("STACKEX_SITE", "stackoverflow")
-STACKEX_PAGESIZE = int(os.getenv("STACKEX_PAGESIZE", "10"))
+STACKEX_PAGESIZE = int(os.getenv("STACKEX_PAGESIZE", "100"))
 STACKEX_SORT = os.getenv("STACKEX_SORT", "votes")
 STACKEX_ORDER = os.getenv("STACKEX_ORDER", "desc")
 STACKEX_TAGGED = os.getenv("STACKEX_TAGGED", "data-engineering")
