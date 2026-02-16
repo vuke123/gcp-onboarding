@@ -79,6 +79,9 @@ xo pubsub topics publish input-topic --message="New Message" --attributes=key=X
   - Subscribers don't know about each other
   - Multiple consumer groups can process same data independently
 
+![Module 1 screenshot](../../screenshots/screen1.png)
+
+
 ## Task 5: Filtered Subscriptions
 ### Commands Used
 ```bash
