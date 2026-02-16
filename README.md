@@ -1,6 +1,33 @@
-# Stack Exchange Data Pipeline - Lab 2
+# Stack Exchange Analytics Platform
 
-This project implements an advanced data pipeline that fetches top posts from Stack Exchange API, encodes them in AVRO format, and stores them in GCS and BigQuery with schema validation and dead-letter queue handling.
+End-to-end data pipeline that processes Stack Exchange posts through containerized microservices, implements schema validation and error handling, and provides analytics through a medallion architecture in BigQuery with dbt.
+
+## Module Overview
+
+### Module 1: Container Infrastructure & Message Queues
+- Docker fundamentals with Stack Exchange API consumer
+- Local Pub/Sub emulator via Docker Compose
+- Message filtering by post attributes (votes, tags)
+- Apache Kafka setup with KRaft (optional alternative)
+
+### Module 2: Cloud-Native Data Pipeline
+- Stack Exchange API → Producer → Pub/Sub → Consumer → GCS/BigQuery
+- Cloud Run deployment (Producer Job + Consumer Service)
+- Secret Manager integration for Stack Exchange API key
+- CI/CD with GitHub Actions
+
+### Module 3: Data Quality & Storage
+- AVRO schema validation in Pub/Sub Schema Registry
+- Dead-letter queue for invalid Stack Exchange posts
+- Time-partitioned storage in GCS (JSON + Parquet)
+- Automated BigQuery loading
+
+### Module 4: Analytics & Reporting
+- Medallion architecture (bronze → silver → gold)
+- Advanced SQL analytics (post engagement metrics)
+- Data quality validation with Great Expectations
+- Performance optimization (partitioning/clustering)
+- Looker Studio dashboards
 
 ## Architecture
 

@@ -3,6 +3,7 @@ dbt_packages/
 logs/
 .user.yml
 profiles.yml
+.venv-lab3/
 
 great_expectations/uncommitted/
 great_expectations/.ge_store_backend_id
