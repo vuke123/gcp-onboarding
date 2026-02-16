@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: posts_silver
+    description: "Srebrni sloj s očišćenim podacima iz StackExchange. Deduplikacija po question_id, title cleaning i sentiment."
+    columns:
+      - name: question_id
+        description: "Jedinstveni identifikator pitanja."
+        tests:
+          - unique
+          - not_null
+
+      - name: sentiment
+        description: "Kategorizirani sentiment (HIGH_ENGAGEMENT, POSITIVE, NEGATIVE, NEUTRAL)."
+        tests:
+          - not_null

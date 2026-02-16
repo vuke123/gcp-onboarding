@@ -1,0 +1,12 @@
+services:
+  pubsub-emulator:
+    platform: linux/amd64
+    image: google/cloud-sdk:latest
+    command: |
+      bash -c "
+      gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
+      "
+    ports:
+      - "8085:8085"
+    environment:
+      - PUBSUB_PROJECT_ID=local-project

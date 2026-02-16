@@ -1,0 +1,16 @@
+target/
+dbt_packages/
+logs/
+.user.yml
+profiles.yml
+
+great_expectations/uncommitted/
+great_expectations/.ge_store_backend_id
+great_expectations/uncommitted/config_variables.yml
+great_expectations/uncommitted/data_docs/
+great_expectations/uncommitted/validations/
+
+.env
+.env.local
+*.env.yaml
+.env.yaml

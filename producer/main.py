@@ -1,4 +1,4 @@
-"""Producer service that fetches Stack Exchange posts and publishes them to Pub/Sub using AVRO encoding."""
+"""Producer service for Stack Exchange posts to Pub/Sub with AVRO encoding."""
 
 import io
 import json
@@ -33,7 +33,6 @@ STACKEX_ORDER = os.getenv("STACKEX_ORDER", "desc")
 STACKEX_TAGGED = os.getenv("STACKEX_TAGGED", "data-engineering")
 
 def fetch_top_posts() -> list[dict]:
-    """Fetch top Stack Exchange posts based on configuration."""
     params = {
         "site": STACKEX_SITE,
         "pagesize": str(STACKEX_PAGESIZE),
@@ -49,7 +48,6 @@ def fetch_top_posts() -> list[dict]:
 
 
 def transform_post(post: dict) -> dict:
-    """Transform raw API response to match our AVRO schema."""
     # Extract owner data safely
     owner = post.get("owner", {})
     
@@ -78,14 +76,12 @@ def transform_post(post: dict) -> dict:
 
 
 def encode_avro(post: dict) -> bytes:
-    """Encode a post dict into AVRO binary format."""
     parsed_schema = fastavro.parse_schema(STACKEX_POST_SCHEMA)
     output = io.BytesIO()
     fastavro.schemaless_writer(output, parsed_schema, post)
     return output.getvalue()
 
 def publish_main(post: dict) -> None:
-    """Publish a post to the main topic as AVRO."""
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
@@ -112,7 +108,6 @@ def publish_main(post: dict) -> None:
 
 
 def publish_dlq(post: dict, error_reason: str, failed_stage: str) -> None:
-    """Publish a failed post to the dead-letter queue (DLQ)."""
     publisher = pubsub_v1.PublisherClient()
     dlq_path = publisher.topic_path(PROJECT_ID, DLQ_TOPIC_ID)
 
@@ -130,7 +125,6 @@ def publish_dlq(post: dict, error_reason: str, failed_stage: str) -> None:
 
 
 def main() -> None:
-    """Main function that orchestrates the producer workflow."""
     posts = fetch_top_posts()
     print(f"[producer] fetched {len(posts)} posts")
 

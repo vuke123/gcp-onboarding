@@ -1,6 +1,4 @@
-"""Pub/Sub consumer service that processes messages from a subscription."""
-
-"""Consumer service that processes AVRO messages from Pub/Sub push and stores them in GCS/BigQuery."""
+"""Consumer service that processes AVRO messages from Pub/Sub and stores them in GCS/BigQuery."""
 
 import base64
 import io
@@ -35,12 +33,11 @@ parsed_schema = fastavro.parse_schema(STACKEX_POST_SCHEMA)
 
 @app.get("/")
 def health():
-    """Health check endpoint required by Cloud Run."""
+    """Health check endpoint."""
     return "OK", 200
 
 
 def store_json(message_id: str, data: dict) -> None:
-    """Store message as JSON in GCS."""
     blob = bucket.blob(f"json/{message_id}.json")
     blob.upload_from_string(
         json.dumps(data, ensure_ascii=False),
@@ -49,7 +46,6 @@ def store_json(message_id: str, data: dict) -> None:
 
 
 def store_parquet(data: dict) -> str:
-    """Store message as Parquet in GCS with time-based partitioning."""
     # Convert to DataFrame
     df = pd.DataFrame([data])
 
@@ -74,7 +70,6 @@ def store_parquet(data: dict) -> str:
 
 
 def load_to_bigquery(parquet_path: str) -> None:
-    """Load Parquet file into BigQuery."""
     table_ref = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
     
     job_config = bigquery.LoadJobConfig(
@@ -95,7 +90,6 @@ def load_to_bigquery(parquet_path: str) -> None:
 
 @app.post("/pubsub/push")
 def pubsub_push():
-    """Handle Pub/Sub push messages."""
     envelope = request.get_json(silent=True)
     if not envelope or "message" not in envelope:
         print("[consumer] no Pub/Sub message received")

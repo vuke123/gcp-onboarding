@@ -13,7 +13,7 @@ STACKEX_PAGESIZE = 10
 STACKEX_SORT = "votes"      # votes, activity, creation
 STACKEX_ORDER = "desc"      # asc/desc
 STACKEX_TAGGED = "data-engineering"  # tag filter
-STACKEX_KEY: Optional[str] = None    # optional, leave None if you don't have it
+STACKEX_KEY: Optional[str] = None
 
 TOPIC_FILE = Path("topic.jsonl")  # local "topic" storage (one JSON per line)
 

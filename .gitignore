@@ -192,10 +192,7 @@ service-account-key.json
 # Local configuration files
 .env.local
 .env.*.local
-
-# Allow env.yaml files for Cloud Run deployment
-!producer/.env.yaml
-!consumer/.env.yaml
+*.env.yaml
 
 # IDE files 
 *.swp

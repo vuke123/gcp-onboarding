@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: posts_gold
+    description: "Zlatni sloj optimiziran za dashboard. Dnevne metrike po sentimentu + rolling 7d + DoD%."
+    columns:
+      - name: report_date
+        description: "Datum za koji su podaci agregirani."
+      - name: sentiment
+        description: "Sentiment kategorija."
+      - name: post_count
+        description: "Broj objava za taj dan i sentiment."
+      - name: posts_rolling_7d
+        description: "Pomični zbroj objava zadnjih 7 dana."
+      - name: day_over_day_change_pct
+        description: "Postotna promjena u odnosu na prethodni dan."

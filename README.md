@@ -53,12 +53,12 @@ pip install -r consumer/requirements.txt
 2. Set up environment variables:
 ```bash
 # Producer
-export PROJECT_ID=your-project-id
+export PROJECT_ID=${project_id}
 export PUBSUB_TOPIC=lab1-topic
 export DLQ_TOPIC_ID=deadletter
 
 # Consumer
-export PROJECT_ID=your-project-id
+export PROJECT_ID=${project_id}
 export PUBSUB_SUBSCRIPTION=lab1-subscription
 export GCS_BUCKET=lab1-stackex-data
 export BIGQUERY_DATASET=stackex_data
@@ -92,7 +92,7 @@ docker build -t lab1-consumer .
 # Producer
 docker run --rm \
   -v $HOME/.config/gcloud:/root/.config/gcloud \
-  -e PROJECT_ID=your-project-id \
+  -e PROJECT_ID=${project_id} \
   -e PUBSUB_TOPIC=lab1-topic \
   -e DLQ_TOPIC_ID=deadletter \
   lab1-producer
@@ -100,7 +100,7 @@ docker run --rm \
 # Consumer
 docker run --rm \
   -v $HOME/.config/gcloud:/root/.config/gcloud \
-  -e PROJECT_ID=your-project-id \
+  -e PROJECT_ID=${project_id} \
   -e PUBSUB_SUBSCRIPTION=lab1-subscription \
   -e GCS_BUCKET=lab1-stackex-data \
   -e BIGQUERY_DATASET=stackex_data \
@@ -175,9 +175,9 @@ Check Cloud Run logs for monitoring:
 ```bash
 # Producer logs
 gcloud logs read "resource.type=cloud_run_revision" \
-  --resource-names="projects/your-project-id/locations/europe-west8/services/stackex-producer-job"
+  --resource-names="projects/${project_id}/locations/europe-west8/services/stackex-producer-job"
 
 # Consumer logs
 gcloud logs read "resource.type=cloud_run_revision" \
-  --resource-names="projects/your-project-id/locations/europe-west8/services/stackex-consumer"
+  --resource-names="projects/${project_id}/locations/europe-west8/services/stackex-consumer"
 ```
