@@ -1,9 +1,27 @@
 # Google Cloud Pub/Sub Lab Report
 
+## Automated Workflow Script
+
+The `run-lab1-pubsub.sh` scripts automates all Pub/Sub lab tasks in sequence:
+- Starts the Pub/Sub emulator if not running
+- Creates topics and subscriptions
+- Publishes messages with attributes
+- Tests acknowledgment and redelivery
+- Creates filtered subscriptions
+- Demonstrates message distribution
+
+To run the complete workflow:
+```bash
+./run-lab1-pubsub.sh
+```
+
+There is also script for Kafka workflow inside /kafka folder.
+
 ## Task 1: Multiple Subscriptions on a Topic
 ### Commands Used
 ```bash
 # Create topic and subscriptions
+#xo is alias configured in .bashrc that represents gcloud command
 xo pubsub topics create input-topic
 xo pubsub subscriptions create input-subscription --topic=input-topic
 xo pubsub subscriptions create input-subscription-backup --topic=input-topic

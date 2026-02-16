@@ -9,18 +9,24 @@ End-to-end data pipeline that processes Stack Exchange posts through containeriz
 - Local Pub/Sub emulator via Docker Compose
 - Message filtering by post attributes (votes, tags)
 - Apache Kafka setup with KRaft (optional alternative)
+**Screenshot:**
+![Module 1 screenshot](screenshots/module-1.png)
 
 ### Module 2: Cloud-Native Data Pipeline
 - Stack Exchange API → Producer → Pub/Sub → Consumer → GCS/BigQuery
 - Cloud Run deployment (Producer Job + Consumer Service)
 - Secret Manager integration for Stack Exchange API key
 - CI/CD with GitHub Actions
+**Screenshot:**
+![Module 1 screenshot](screenshots/module-1.png)
 
 ### Module 3: Data Quality & Storage
 - AVRO schema validation in Pub/Sub Schema Registry
 - Dead-letter queue for invalid Stack Exchange posts
 - Time-partitioned storage in GCS (JSON + Parquet)
 - Automated BigQuery loading
+**Screenshot:**
+![Module 1 screenshot](screenshots/module-1.png)
 
 ### Module 4: Analytics & Reporting
 - Medallion architecture (bronze → silver → gold)
@@ -28,6 +34,8 @@ End-to-end data pipeline that processes Stack Exchange posts through containeriz
 - Data quality validation with Great Expectations
 - Performance optimization (partitioning/clustering)
 - Looker Studio dashboards
+**Screenshot:**
+![Module 1 screenshot](screenshots/module-1.png)
 
 ## Architecture
 
